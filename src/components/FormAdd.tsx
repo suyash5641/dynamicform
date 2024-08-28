@@ -1,7 +1,7 @@
 import { FieldType } from "@/interface/interface";
-import { addField } from "@/slice/formSlice";
+import { insertFieldAtPosition } from "@/slice/formSlice";
 import { AppDispatch } from "@/store/store";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useDispatch } from "react-redux";
 import {
   DropdownMenu,
@@ -17,17 +17,23 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-export const FormAdd = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const [open, setOpen] = useState(false);
-  //   const fields = useSelector((state: RootState) => state?.fields?.fields);
 
-  const handleAddField = (type: FieldType) => {
-    setOpen((prev) => !prev);
-    setTimeout(() => {
-      dispatch(addField(type));
-    }, 400);
-  };
+interface IProps {
+  id: string;
+  insertBelow: boolean;
+  index: number;
+}
+
+export const FormAdd = ({ id, insertBelow, index }: IProps) => {
+  const dispatch = useDispatch<AppDispatch>();
+
+  const handleAddField = useCallback(
+    (type: FieldType) => {
+      dispatch(insertFieldAtPosition({ type, index, insertBelow }));
+    },
+    [dispatch, index, insertBelow]
+  );
+
   return (
     <div className="w-40 flex flex-col gap-2">
       <DropdownMenuItem

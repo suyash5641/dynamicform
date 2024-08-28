@@ -1,11 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { IField, FieldType, IFieldSchema } from "@/interface/interface";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   addField,
   copyField,
@@ -17,6 +18,9 @@ import { AppDispatch, RootState } from "@/store/store";
 import { useDispatch, useSelector } from "react-redux";
 import PopOver from "./PopOver";
 import { DropdownMenuBox } from "./DropDown";
+import { createClient } from "@/utils/supabase/client";
+import { fetchUser } from "@/slice/userSlice";
+const supabase = createClient();
 
 const DynamicForm: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -42,7 +46,9 @@ const DynamicForm: React.FC = () => {
     dispatch(updateFieldOptions({ id, options }));
   };
 
-  const generateSchema = () => {
+  const user = useSelector((state: RootState) => state?.userInfo?.user);
+
+  const generateSchema = async () => {
     const schemaMap = new Map<string, IFieldSchema>();
     const schema: Record<string, IFieldSchema> = {};
 
@@ -57,17 +63,53 @@ const DynamicForm: React.FC = () => {
         options: field.options,
       };
     });
+    const f = {
+      name: "Customer Feedback Form",
+      description: "A form to collect feedback from customers",
+      fieldInfo: fields,
+    };
+
+    await insertForm(f);
 
     return schema;
   };
 
+  async function insertForm(formData: any) {
+    const { data, error } = await supabase.from("userform").insert([
+      {
+        form_title: formData.name,
+        form_description: formData.description,
+        form_data: formData?.fieldInfo,
+        user_id: user?.id,
+      },
+    ]);
+
+    if (error) {
+      console.error("Error inserting form:", error);
+      return;
+    }
+  }
+
+  useEffect(() => {
+    dispatch(fetchUser());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="space-y-4 w-full sm:w-[80%] sm:max-w-[600px]">
       <div className="flex flex-col gap-6">
-        {fields.map((field) => (
+        <p>{user?.email}</p>
+        <div>
+          <form action="/auth/signout" method="post">
+            <button className="button block" type="submit">
+              Sign out
+            </button>
+          </form>
+        </div>
+        {fields.map((field, index) => (
           <div key={field.id} className="p-4 border rounded-md space-y-2 ">
-            <DropdownMenuBox id={field?.id} />
-            <Label htmlFor="question">Question</Label>
+            <DropdownMenuBox id={field?.id} index={index} />
+            <Label htmlFor="question">Question {index + 1}</Label>
             <Input
               placeholder="Question"
               value={field.question}
@@ -210,9 +252,7 @@ const DynamicForm: React.FC = () => {
         <PopOver />
       </div>
       <div className="space-x-2">
-        <Button onClick={() => console.log(generateSchema())}>
-          Generate Schema
-        </Button>
+        <Button onClick={generateSchema}>Generate Schema</Button>
       </div>
     </div>
   );

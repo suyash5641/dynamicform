@@ -1,20 +1,4 @@
-import {
-  Cloud,
-  CreditCard,
-  FileText,
-  Github,
-  Keyboard,
-  LifeBuoy,
-  LogOut,
-  Mail,
-  MessageSquare,
-  Plus,
-  PlusCircle,
-  Settings,
-  User,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { MessageSquare, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,9 +19,10 @@ import { FormAdd } from "./FormAdd";
 
 interface IProps {
   id: string;
+  index: number;
 }
 
-export function DropdownMenuBox({ id }: IProps) {
+export function DropdownMenuBox({ id, index }: IProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,7 +44,7 @@ export function DropdownMenuBox({ id }: IProps) {
                   </DropdownMenuSubTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
-                      <FormAdd />
+                      <FormAdd id={id} insertBelow={true} index={index} />
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
@@ -67,21 +52,21 @@ export function DropdownMenuBox({ id }: IProps) {
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    <span>Insert Question Below</span>
+                    <span>Insert Question Above</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
-                      <FormAdd />
+                      <FormAdd id={id} insertBelow={false} index={index} />
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem>
+                {/* <DropdownMenuItem>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   <span>Move to position</span>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
