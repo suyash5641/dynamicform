@@ -1,4 +1,4 @@
-import { MessageSquare, UserPlus } from "lucide-react";
+import { EllipsisVertical, MessageSquare, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,14 +26,16 @@ export function DropdownMenuBox({ id, index }: IProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">Open</Button>
+        <Button className="w-[32px] h-[32px] p-[2px]">
+          <EllipsisVertical size={16} />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <UserPlus className="mr-2 h-4 w-4" />
-              <span>Invite users</span>
+              <span>Insert Question</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>

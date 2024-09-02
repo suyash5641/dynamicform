@@ -3,10 +3,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
-import { IField, FieldType, IFieldSchema } from "@/interface/interface";
+import { IField, FieldType, IFieldSchema, Field } from "@/interface/interface";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { Switch } from "@/components/ui/switch";
 import {
   addField,
   copyField,
@@ -20,6 +21,9 @@ import PopOver from "./PopOver";
 import { DropdownMenuBox } from "./DropDown";
 import { createClient } from "@/utils/supabase/client";
 import { fetchUser } from "@/slice/userSlice";
+import { generateSchemaServer } from "@/app/schemaActions";
+import { toast } from "react-toastify";
+import { Copy, Delete, DeleteIcon, Trash } from "lucide-react";
 const supabase = createClient();
 
 const DynamicForm: React.FC = () => {
@@ -38,57 +42,100 @@ const DynamicForm: React.FC = () => {
     dispatch(deleteField(id));
   };
 
-  const handleUpdateField = (id: string, key: keyof IField, value: string) => {
+  const handleUpdateField = (
+    id: string,
+    key: keyof IField,
+    value: string | boolean
+  ) => {
     dispatch(updateField({ id, key, value }));
   };
 
-  const handleUpdateFieldOptions = (id: string, options: string[]) => {
-    dispatch(updateFieldOptions({ id, options }));
+  // const handleUpdateFieldOptions = (id: string, options: string[]) => {
+  //   dispatch(updateFieldOptions({ id, options }));
+  // };
+
+  const handleUpdateFieldOptions = (
+    // id: string,
+    type: string,
+    update: Field
+  ) => {
+    // console.log({
+    //   id,
+    //   options: update.options ?? [],
+    //   rows: update.rows ?? [],
+    //   columns: update.columns ?? [],
+    //   fields,
+    //   update,
+    // });
+    dispatch(
+      updateFieldOptions({
+        id: update?.id,
+        options: update?.options ?? [],
+        rows: update?.rows ?? [],
+        columns: update?.columns ?? [],
+        type,
+      })
+    );
   };
 
   const user = useSelector((state: RootState) => state?.userInfo?.user);
 
-  const generateSchema = async () => {
-    const schemaMap = new Map<string, IFieldSchema>();
-    const schema: Record<string, IFieldSchema> = {};
+  // const generateSchema = async () => {
+  //   const schemaMap = new Map<string, IFieldSchema>();
+  //   const schema: Record<string, IFieldSchema> = {};
 
-    console.log(fields);
+  //   const formInfo = {
+  //     name: "Customer Feedback Form",
+  //     description: "A form to collect feedback from customers",
+  //     fieldInfo: fields,
+  //   };
 
-    // Iterate over the fields array in the original order
-    fields.forEach((field) => {
-      schema[field.id] = {
-        type: field.type,
-        question: field.question,
-        description: field.description,
-        options: field.options,
+  //   await insertForm(formInfo);
+
+  //   return schema;
+  // };
+
+  const handleGenerateSchema = async () => {
+    try {
+      const formInfo = {
+        name: "Customer Feedback Form",
+        description: "A form to collect feedback from customers",
+        fieldInfo: fields,
+        formId: uuidv4(),
       };
-    });
-    const f = {
-      name: "Customer Feedback Form",
-      description: "A form to collect feedback from customers",
-      fieldInfo: fields,
-    };
-
-    await insertForm(f);
-
-    return schema;
+      console.log(fields);
+      const { error, formId } = await generateSchemaServer(formInfo, user);
+      if (error) throw error;
+      console.log(formId, "okk");
+    } catch (error: any) {
+      toast.error(error, {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    }
   };
 
-  async function insertForm(formData: any) {
-    const { data, error } = await supabase.from("userform").insert([
-      {
-        form_title: formData.name,
-        form_description: formData.description,
-        form_data: formData?.fieldInfo,
-        user_id: user?.id,
-      },
-    ]);
+  // async function insertForm(formData: any) {
+  //   const { data, error } = await supabase.from("userform").insert([
+  //     {
+  //       form_title: formData.name,
+  //       form_description: formData.description,
+  //       form_data: formData?.fieldInfo,
+  //       user_id: user?.id,
+  //     },
+  //   ]);
 
-    if (error) {
-      console.error("Error inserting form:", error);
-      return;
-    }
-  }
+  //   if (error) {
+  //     console.error("Error inserting form:", error);
+  //     return;
+  //   }
+  // }
 
   useEffect(() => {
     dispatch(fetchUser());
@@ -108,8 +155,10 @@ const DynamicForm: React.FC = () => {
         </div>
         {fields.map((field, index) => (
           <div key={field.id} className="p-4 border rounded-md space-y-2 ">
-            <DropdownMenuBox id={field?.id} index={index} />
-            <Label htmlFor="question">Question {index + 1}</Label>
+            <div className="flex w-full justify-between items-center">
+              <Label htmlFor="question">Question {index + 1}</Label>
+              <DropdownMenuBox id={field?.id} index={index} />
+            </div>
             <Input
               placeholder="Question"
               value={field.question}
@@ -177,6 +226,103 @@ const DynamicForm: React.FC = () => {
                 />
               </>
             )}
+            {field.type === "multiple-choice-grid" && (
+              <>
+                <Label htmlFor="rows">Rows</Label>
+                {field.rows?.map((row, index) => (
+                  <div key={index} className="flex flex-row gap-4">
+                    <Input
+                      placeholder={`Row ${index + 1}`}
+                      value={row}
+                      onChange={(e) => {
+                        const newRows = [...field.rows!];
+                        newRows[index] = e.target.value;
+                        handleUpdateFieldOptions("row", {
+                          ...field,
+                          rows: newRows,
+                        });
+                      }}
+                      className="w-full"
+                    />
+                    {field?.rows && field?.rows?.length > 1 && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          const newRows = field.rows!.filter(
+                            (_, i) => i !== index
+                          );
+                          handleUpdateFieldOptions("row", {
+                            ...field,
+                            rows: newRows,
+                          });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  onClick={() => {
+                    const newRows = [...(field.rows || []), ""];
+                    handleUpdateFieldOptions("row", {
+                      ...field,
+                      rows: newRows,
+                    });
+                  }}
+                >
+                  Add Row
+                </Button>
+                <div className="flex flex-col gap-4">
+                  <Label htmlFor="columns">Columns</Label>
+                  {field.columns?.map((column, index) => (
+                    <div key={index} className="flex flex-row gap-4">
+                      <Input
+                        placeholder={`Column ${index + 1}`}
+                        value={column}
+                        onChange={(e) => {
+                          const newColumns = [...field.columns!];
+                          newColumns[index] = e.target.value;
+                          handleUpdateFieldOptions("column", {
+                            ...field,
+                            columns: newColumns,
+                          });
+                        }}
+                        className="w-full"
+                      />
+                      {field?.columns && field.columns.length > 1 && (
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            const newColumns = field.columns!.filter(
+                              (_, i) => i !== index
+                            );
+                            handleUpdateFieldOptions("column", {
+                              ...field,
+                              columns: newColumns,
+                            });
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  onClick={() => {
+                    const newColumns = [...(field.columns || []), ""];
+                    handleUpdateFieldOptions("column", {
+                      ...field,
+                      columns: newColumns,
+                    });
+                  }}
+                >
+                  Add Column
+                </Button>
+              </>
+            )}
+
             {(field.type === "single-select" ||
               field.type === "multi-select") && (
               <>
@@ -189,7 +335,11 @@ const DynamicForm: React.FC = () => {
                       onChange={(e) => {
                         const newOptions = [...field.options!];
                         newOptions[index] = e.target.value;
-                        handleUpdateFieldOptions(field.id, newOptions);
+                        handleUpdateFieldOptions("options", {
+                          ...field,
+                          options: newOptions,
+                        });
+                        // handleUpdateFieldOptions(field.id, newOptions);
                       }}
                       className="w-full"
                     />
@@ -200,7 +350,15 @@ const DynamicForm: React.FC = () => {
                           const newOptions = field.options!.filter(
                             (_, i) => i !== index
                           );
-                          handleUpdateFieldOptions(field.id, newOptions);
+                          handleUpdateFieldOptions(
+                            // field.id, field?.type,
+                            "options",
+                            {
+                              ...field,
+                              options: newOptions,
+                            }
+                          );
+                          // handleUpdateFieldOptions(field.id, newOptions);
                         }}
                       >
                         Delete
@@ -208,7 +366,7 @@ const DynamicForm: React.FC = () => {
                     )}
                   </div>
                 ))}
-                <Button
+                {/* <Button
                   onClick={() =>
                     handleUpdateFieldOptions(field.id, [
                       ...field.options!,
@@ -219,40 +377,78 @@ const DynamicForm: React.FC = () => {
                   }
                 >
                   Add Option
-                </Button>
+                </Button> */}
               </>
             )}
-            <div className="space-x-2">
-              <Button onClick={() => handleCopyField(field.id)}>
-                Copy Field
+            <div className="pt-4 flex flex-row space-x-2 ">
+              <>
+                {(field.type === "single-select" ||
+                  field.type === "multi-select") && (
+                  <Button
+                    // onClick={() =>
+                    //   handleUpdateFieldOptions(field.id, [
+                    //     ...field.options!,
+                    //     field?.options?.length
+                    //       ? `Option ${field?.options?.length + 1}`
+                    //       : "",
+                    //   ])
+                    // }
+                    onClick={
+                      () =>
+                        handleUpdateFieldOptions(
+                          // field.id,
+                          // field?.type,
+                          "options",
+                          {
+                            ...field,
+                            options: [
+                              ...field.options!,
+                              field?.options?.length
+                                ? `Option ${field?.options?.length + 1}`
+                                : "",
+                            ],
+                          }
+                        ) // Pass an object
+                    }
+                    className=" h-[32px] p-[8px]"
+                  >
+                    Add Option
+                  </Button>
+                )}
+              </>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  className="relative inline-flex items-center"
+                  onCheckedChange={(checked) =>
+                    handleUpdateField(field.id, "isRequired", checked)
+                  }
+                  id="is-required"
+                />
+                <Label htmlFor="is-required">Required</Label>
+              </div>
+
+              <Button
+                className="w-[32px] h-[32px] p-[2px]"
+                onClick={() => handleCopyField(field.id)}
+              >
+                <Copy size={16} strokeWidth={1} />
               </Button>
               <Button
                 variant="destructive"
+                className="w-[32px] h-[32px] p-[2px]"
                 onClick={() => handleDeleteField(field.id)}
               >
-                Delete Field
+                <Trash size={16} />
               </Button>
             </div>
           </div>
         ))}
       </div>
       <div className="space-x-2">
-        {/* <Button onClick={() => handleAddField("text")}>Add Text Field</Button>
-        <Button onClick={() => handleAddField("number")}>
-          Add Number Field
-        </Button>
-        <Button onClick={() => handleAddField("url")}>Add URL Field</Button>
-        <Button onClick={() => handleAddField("phone")}>Add Phone Field</Button>
-        <Button onClick={() => handleAddField("single-select")}>
-          Add Single Select Field
-        </Button>
-        <Button onClick={() => handleAddField("multi-select")}>
-          Add Multi Select Field
-        </Button> */}
         <PopOver />
       </div>
       <div className="space-x-2">
-        <Button onClick={generateSchema}>Generate Schema</Button>
+        <Button onClick={handleGenerateSchema}>Generate Schema</Button>
       </div>
     </div>
   );

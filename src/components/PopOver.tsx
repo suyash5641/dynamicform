@@ -79,6 +79,13 @@ const PopOver = () => {
         >
           Multi Select
         </Button>
+        <Button
+          variant="outline"
+          className="max-w-[200px]"
+          onClick={() => handleAddField("multiple-choice-grid")}
+        >
+          MCG
+        </Button>
       </PopoverContent>
     </Popover>
   );

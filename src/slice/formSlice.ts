@@ -21,10 +21,14 @@ const formSlice = createSlice({
         type,
         question: "",
         description: "",
+        answer: "",
+        isRequired: true,
         options:
           type === "single-select" || type === "multi-select"
             ? ["Option 1", "Option 2"]
             : [],
+        rows: type === "multiple-choice-grid" ? ["", ""] : [],
+        columns: type === "multiple-choice-grid" ? ["", ""] : [],
       };
       state.fields.push(newField);
     },
@@ -42,6 +46,8 @@ const formSlice = createSlice({
         type,
         question: "",
         description: "",
+        answer: "",
+        isRequired: true,
         options:
           type === "single-select" || type === "multi-select"
             ? ["Option 1", "Option 2"]
@@ -52,7 +58,6 @@ const formSlice = createSlice({
         newField,
         ...state?.fields?.slice(insertBelow ? index + 1 : index),
       ];
-      console.log(n, index, insertBelow);
       state.fields = n;
     },
     copyField(state, action: PayloadAction<string>) {
@@ -72,7 +77,11 @@ const formSlice = createSlice({
     },
     updateField(
       state,
-      action: PayloadAction<{ id: string; key: keyof IField; value: string }>
+      action: PayloadAction<{
+        id: string;
+        key: keyof IField;
+        value: string | boolean;
+      }>
     ) {
       const { id, key, value } = action?.payload;
       const fieldIndex = state?.fields?.findIndex((field) => field.id === id);
@@ -85,12 +94,25 @@ const formSlice = createSlice({
     },
     updateFieldOptions(
       state,
-      action: PayloadAction<{ id: string; options: string[] }>
+      action: PayloadAction<{
+        id: string;
+        type: string;
+        options?: string[];
+        rows?: string[];
+        columns?: string[];
+      }>
     ) {
-      const { id, options } = action.payload;
+      const { id, options, rows, columns, type } = action.payload;
       const fieldIndex = state?.fields?.findIndex((field) => field.id === id);
       if (fieldIndex !== -1) {
-        state.fields[fieldIndex] = { ...state.fields[fieldIndex], options };
+        // state.fields[fieldIndex] = { ...state.fields[fieldIndex], options };
+        if (type === "option") {
+          state.fields[fieldIndex].options = options;
+        } else if (type === "row") {
+          state.fields[fieldIndex].rows = rows;
+        } else if (type === "column") {
+          state.fields[fieldIndex].columns = columns;
+        }
       }
     },
   },
