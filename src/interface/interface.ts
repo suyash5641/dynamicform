@@ -42,4 +42,5 @@ export interface Field {
   options?: string[];
   rows?: string[];
   columns?: string[]; // Add columns property here
+  answer?: string;
 }

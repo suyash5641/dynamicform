@@ -1,14 +1,36 @@
+import { fetchUserFormData } from "@/app/schemaActions";
 import { IField, FieldType } from "@/interface/interface";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { v4 as uuidv4 } from "uuid";
 
 interface FieldsState {
   fields: IField[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: FieldsState = {
   fields: [],
+  loading: false,
+  error: null,
 };
+
+export const fetchFormFields = createAsyncThunk<
+  IField[],
+  // { formId: string; userId: string },
+  { formId: string },
+  { rejectValue: string }
+>("fields/fetchFormFields", async ({ formId }, { rejectWithValue }) => {
+  try {
+    const { data, error } = await fetchUserFormData(formId);
+    if (error) throw new Error(error);
+    const formData = data?.form_data as IField[];
+    console.log(formData, "formdata");
+    return formData;
+  } catch (error: any) {
+    return rejectWithValue(error.message);
+  }
+});
 
 const formSlice = createSlice({
   name: "fields",
@@ -22,11 +44,9 @@ const formSlice = createSlice({
         question: "",
         description: "",
         answer: "",
-        isRequired: true,
+        isRequired: false,
         options:
-          type === "single-select" || type === "multi-select"
-            ? ["Option 1", "Option 2"]
-            : [],
+          type === "single-select" || type === "multi-select" ? ["", ""] : [],
         rows: type === "multiple-choice-grid" ? ["", ""] : [],
         columns: type === "multiple-choice-grid" ? ["", ""] : [],
       };
@@ -49,9 +69,9 @@ const formSlice = createSlice({
         answer: "",
         isRequired: true,
         options:
-          type === "single-select" || type === "multi-select"
-            ? ["Option 1", "Option 2"]
-            : [],
+          type === "single-select" || type === "multi-select" ? ["", ""] : [],
+        rows: type === "multiple-choice-grid" ? ["", ""] : [],
+        columns: type === "multiple-choice-grid" ? ["", ""] : [],
       };
       const n = [
         ...state?.fields?.slice(0, insertBelow ? index + 1 : index),
@@ -100,21 +120,49 @@ const formSlice = createSlice({
         options?: string[];
         rows?: string[];
         columns?: string[];
+        answer?: string;
       }>
     ) {
-      const { id, options, rows, columns, type } = action.payload;
+      const { id, options, rows, columns, type, answer } = action.payload;
+      console.log(type, answer, "testtt");
       const fieldIndex = state?.fields?.findIndex((field) => field.id === id);
       if (fieldIndex !== -1) {
         // state.fields[fieldIndex] = { ...state.fields[fieldIndex], options };
-        if (type === "option") {
+        if (type === "options") {
           state.fields[fieldIndex].options = options;
         } else if (type === "row") {
           state.fields[fieldIndex].rows = rows;
         } else if (type === "column") {
           state.fields[fieldIndex].columns = columns;
+        } else if (type === "answer") {
+          if (answer) state.fields[fieldIndex].answer = answer;
         }
       }
     },
+    performDrag(state, action: PayloadAction<IField[]>) {
+      state.fields = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Handle pending state (e.g., show loading spinner)
+      .addCase(fetchFormFields.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      // Handle fulfilled state (e.g., update fields with fetched data)
+      .addCase(
+        fetchFormFields.fulfilled,
+        (state, action: PayloadAction<IField[]>) => {
+          state.fields = action.payload; // Update the fields array with fetched data
+          state.loading = false;
+        }
+      )
+      // Handle rejected state (e.g., show error message)
+      .addCase(fetchFormFields.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to fetch form fields";
+      });
   },
 });
 
@@ -125,6 +173,7 @@ export const {
   updateField,
   updateFieldOptions,
   insertFieldAtPosition,
+  performDrag,
 } = formSlice.actions;
 
 export default formSlice.reducer;
