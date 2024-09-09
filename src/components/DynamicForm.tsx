@@ -10,6 +10,9 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
+
 import {
   addField,
   copyField,
@@ -28,6 +31,7 @@ import { toast } from "react-toastify";
 import { Copy, Delete, DeleteIcon, Trash } from "lucide-react";
 import { useCreateForm } from "@/hooks/useCreateForm";
 import { useParams } from "next/navigation";
+import { ButtonLoading } from "./shared/LoadingButton/LoadingButton";
 const supabase = createClient();
 
 interface IFormWrapper {
@@ -43,6 +47,7 @@ const DynamicForm = ({
 }: IFormWrapper) => {
   const dispatch = useDispatch<AppDispatch>();
   const fields = useSelector((state: RootState) => state?.fields?.fields);
+  const loading = useSelector((state: RootState) => state?.fields?.loading);
   // const { formNewId } = useParams() as { formNewId: string };
   // console.log({ formNewId });
 
@@ -50,11 +55,13 @@ const DynamicForm = ({
 
   const {
     handleCopyField,
-    handleGenerateSchema,
+    handleFormPreview,
     handleUpdateFieldOptions,
     handleUpdateField,
     handleDeleteField,
     handleDragAndDrop,
+    isLoading,
+    handlePublishForm,
   } = useCreateForm();
 
   const handleDragStart = (index: number) => {
@@ -84,6 +91,14 @@ const DynamicForm = ({
     dispatch(fetchUser());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center w-full h-screen">
+        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 w-full sm:w-[80%] sm:max-w-[600px]">
@@ -501,9 +516,17 @@ const DynamicForm = ({
         </div>
       )}
       <div className="space-x-2">
-        <Button onClick={() => handleGenerateSchema(formNewId)}>
-          Preview Form
-        </Button>
+        {isLoading ? (
+          <ButtonLoading />
+        ) : (
+          <Button
+            onClick={() =>
+              isEdit ? handleFormPreview(formNewId) : handlePublishForm()
+            }
+          >
+            {isEdit ? "Preview Form" : "Publish Form"}
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ interface FieldsState {
 
 const initialState: FieldsState = {
   fields: [],
-  loading: false,
+  loading: true,
   error: null,
 };
 

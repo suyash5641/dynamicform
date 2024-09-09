@@ -26,12 +26,14 @@ import { toast } from "react-toastify";
 import { Copy, Delete, DeleteIcon, Trash } from "lucide-react";
 import { useCreateForm } from "@/hooks/useCreateForm";
 import { redirect, useRouter } from "next/navigation";
+import { ButtonLoading } from "./shared/LoadingButton/LoadingButton";
 
 const supabase = createClient();
 
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   // const fields = useSelector((state: RootState) => state?.fields?.fields);
 
   // const {
@@ -65,13 +67,13 @@ const Home: React.FC = () => {
 
   const handleGenerateSchema = async () => {
     try {
+      setIsLoading(true);
       const formInfo = {
         name: "Customer Feedback Form",
         description: "A form to collect feedback from customers",
         fieldInfo: f,
         formId: uuidv4(),
       };
-      console.log(formInfo, user);
       const { error, formId } = await generateSchemaServer(formInfo, user);
       if (error) throw error;
       console.log(formId, "bfr", formInfo);
@@ -87,13 +89,19 @@ const Home: React.FC = () => {
         progress: undefined,
         theme: "light",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="space-y-4 w-full sm:w-[80%] sm:max-w-[600px]">
       <div className="space-x-2">
-        <Button onClick={handleGenerateSchema}>Create Form</Button>
+        {isLoading ? (
+          <ButtonLoading />
+        ) : (
+          <Button onClick={handleGenerateSchema}>Create Form</Button>
+        )}
       </div>
     </div>
   );

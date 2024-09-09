@@ -72,3 +72,41 @@ export async function updateUserForm(
 
   return { error: "", formId: formData?.formId };
 }
+
+export async function getGeoLocation(formId: string) {
+  const response = await fetch(
+    `https://api.ipgeolocation.io/ipgeo?apiKey=${process.env.NEXT_PUBLIC_GEOLOCATION_API_KEY}`
+  );
+  const result = await response.json();
+
+  const { error } = await supabase.from("UserGeoLocation").insert([
+    {
+      form_id: formId,
+      city: result?.city,
+      country: result?.country_name,
+    },
+  ]);
+
+  if (error) {
+    return { error: error?.message, formId: "" };
+  }
+
+  return { error: "", formId: formId };
+}
+
+export async function getDashboardData(formId: string) {
+  // const { data, error } = await supabase
+  //   .from("form_views")
+  //   .select("city, country, count(*) as count")
+  //   .eq("form_id", formId as string)
+  //   .groupBy("city, country");
+  const { data, error } = await supabase.rpc("get_form_view_data_uuid", {
+    form_id_input: formId,
+  });
+
+  if (error) {
+    return { error: error?.message, data: null };
+  }
+
+  return { error: "", data };
+}

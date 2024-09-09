@@ -18,60 +18,72 @@ import { useParams, useRouter } from "next/navigation";
 const supabase = createClient();
 
 export const useCreateForm = () => {
-  //   const { formNewId } = useParams();
-  //   const { formNewId } = useParams() as { formNewId: string };
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const fields = useSelector((state: RootState) => state?.fields?.fields);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleCopyField = (id: string) => {
-    dispatch(copyField(id));
-  };
+  const handleCopyField = useCallback(
+    (id: string) => {
+      dispatch(copyField(id));
+    },
+    [dispatch]
+  );
 
-  const handleDeleteField = (id: string) => {
-    dispatch(deleteField(id));
-  };
+  const handlePublishForm = useCallback(() => {}, []);
 
-  const handleDragAndDrop = (updatedField: IField[]) => {
-    dispatch(performDrag(updatedField));
-  };
+  const handleDeleteField = useCallback(
+    (id: string) => {
+      dispatch(deleteField(id));
+    },
+    [dispatch]
+  );
 
-  const handleUpdateField = (
-    id: string,
-    key: keyof IField,
-    value: string | boolean
-  ) => {
-    dispatch(updateField({ id, key, value }));
-  };
+  const handleDragAndDrop = useCallback(
+    (updatedField: IField[]) => {
+      dispatch(performDrag(updatedField));
+    },
+    [dispatch]
+  );
+
+  const handleUpdateField = useCallback(
+    (id: string, key: keyof IField, value: string | boolean) => {
+      dispatch(updateField({ id, key, value }));
+    },
+    [dispatch]
+  );
 
   // const handleUpdateFieldOptions = (id: string, options: string[]) => {
   //   dispatch(updateFieldOptions({ id, options }));
   // };
 
-  const handleUpdateFieldOptions = (
-    // id: string,
-    type: string,
-    update: Field
-  ) => {
-    // console.log({
-    //   id,
-    //   options: update.options ?? [],
-    //   rows: update.rows ?? [],
-    //   columns: update.columns ?? [],
-    //   fields,
-    //   update,
-    // });
-    dispatch(
-      updateFieldOptions({
-        id: update?.id,
-        options: update?.options ?? [],
-        rows: update?.rows ?? [],
-        columns: update?.columns ?? [],
-        answer: update?.answer ?? "",
-        type,
-      })
-    );
-  };
+  const handleUpdateFieldOptions = useCallback(
+    (
+      // id: string,
+      type: string,
+      update: Field
+    ) => {
+      // console.log({
+      //   id,
+      //   options: update.options ?? [],
+      //   rows: update.rows ?? [],
+      //   columns: update.columns ?? [],
+      //   fields,
+      //   update,
+      // });
+      dispatch(
+        updateFieldOptions({
+          id: update?.id,
+          options: update?.options ?? [],
+          rows: update?.rows ?? [],
+          columns: update?.columns ?? [],
+          answer: update?.answer ?? "",
+          type,
+        })
+      );
+    },
+    [dispatch]
+  );
 
   const user = useSelector((state: RootState) => state?.userInfo?.user);
 
@@ -90,39 +102,53 @@ export const useCreateForm = () => {
   //   return schema;
   // };
 
-  const handleGenerateSchema = async (formNewId: string) => {
-    try {
-      const formInfo = {
-        name: "Customer Feedback Form",
-        description: "A form to collect feedback from customers",
-        fieldInfo: fields,
-        formId: formNewId,
-      };
-      console.log(fields, formNewId);
-      const { error, formId } = await updateUserForm(formInfo, user);
-      if (error) throw error;
-      router.push(`/form/${formNewId}?isEdit=false&isSubmit=false`);
-      //   console.log(formId, "okk");
-    } catch (error: any) {
-      toast.error(error, {
-        position: "top-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-      });
-    }
-  };
+  const handleSuccess = useCallback((formNewId: string) => {
+    const url = `/form/${formNewId}?isEdit=false&isSubmit=false`;
+    window.open(url, "_blank");
+  }, []);
+
+  const handleFormPreview = useCallback(
+    async (formNewId: string) => {
+      try {
+        setIsLoading(true);
+        const formInfo = {
+          name: "Customer Feedback Form",
+          description: "A form to collect feedback from customers",
+          fieldInfo: fields,
+          formId: formNewId,
+        };
+        console.log(fields, formNewId);
+        const { error, formId } = await updateUserForm(formInfo, user);
+        if (error) throw error;
+        // router.push(`/form/${formNewId}?isEdit=false&isSubmit=false`);
+        handleSuccess(formNewId);
+        //   console.log(formId, "okk");
+      } catch (error: any) {
+        toast.error(error, {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fields, handleSuccess, user]
+  );
 
   return {
     handleCopyField,
-    handleGenerateSchema,
+    handleFormPreview,
     handleUpdateFieldOptions,
     handleUpdateField,
     handleDeleteField,
     handleDragAndDrop,
+    isLoading,
+    handlePublishForm,
   };
 };
